@@ -363,6 +363,7 @@ def start_daily_and_process_tasks(private_keys_file):
                         time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Wrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
+                        print_error(f"{e}")
                         break
 
                 elif weth_balance > eth_balance and total_operations < 3:
@@ -374,6 +375,7 @@ def start_daily_and_process_tasks(private_keys_file):
                         time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Unwrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
+                        print_error(f"{e}")
                         break
 
                 if total_operations >= 3:
