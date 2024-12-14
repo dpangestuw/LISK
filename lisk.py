@@ -16,9 +16,12 @@ from termcolor import colored
 
 init(autoreset=True)
 
+
 def current_time():
     timezone = pytz.timezone('Asia/Jakarta')
+
     local_time = datetime.now(timezone)
+
     return local_time.strftime('%H:%M:%S')
 
 def print_success(message, end='\n'):
@@ -44,7 +47,7 @@ def print_header():
     print(Fore.BLUE + Style.BRIGHT + border)
     print()
 
-w3 = Web3(Web3.HTTPProvider("https://rpc.api.lisk.com"))
+w3 = Web3(Web3.HTTPProvider("https://lisk.drpc.org"))
 
 WETH_ADDRESS = "0x4200000000000000000000000000000000000006"
 WETH_ABI = [
@@ -104,10 +107,14 @@ def wrap_eth(private_key):
         account = w3.eth.account.from_key(private_key.strip())
         address = account.address
         eth_balance = get_eth_balance(address)
+
         if eth_balance <= 0.00005:
             return False
+
         amount_eth = Decimal(str(eth_balance)) - Decimal('0.00005')
+
         weth_contract = w3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
+
         amount_wei = w3.to_wei(amount_eth, 'ether')
         txn = weth_contract.functions.deposit().build_transaction({
             'from': address,
@@ -117,9 +124,13 @@ def wrap_eth(private_key):
             'gasPrice': w3.eth.gas_price,
         })
         print_info(f"Wrapping {amount_eth:.5f} ETH",end='\r')
+
         signed_txn = account.sign_transaction(txn)
+
         txn_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+
         receipt = w3.eth.wait_for_transaction_receipt(txn_hash)
+        
         if receipt['status'] == 1:
             return True
         else:
@@ -132,10 +143,14 @@ def unwrap_eth(private_key):
         account = w3.eth.account.from_key(private_key.strip())
         address = account.address
         weth_balance = get_weth_balance(address)
+
         if weth_balance <= 0:
             return False
+
         amount_weth = Decimal(str(weth_balance))
+
         weth_contract = w3.eth.contract(address=WETH_ADDRESS, abi=WETH_ABI)
+
         amount_wei = w3.to_wei(amount_weth, 'ether')
         txn = weth_contract.functions.withdraw(amount_wei).build_transaction({
             'from': address,
@@ -145,8 +160,11 @@ def unwrap_eth(private_key):
         })
         print_info(f"Unwrapping {amount_weth:.5f} ETH",end='\r')
         signed_txn = account.sign_transaction(txn)
+        
         txn_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        
         receipt = w3.eth.wait_for_transaction_receipt(txn_hash)
+        
         if receipt['status'] == 1:
             return True
         else:
@@ -241,24 +259,33 @@ def fetch_tasks(address):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-site'
         }
+
         response = requests.post(url, json={'query': query, 'variables': variables}, headers=headers)
+        
         response.raise_for_status()
+
         data = response.json()
+        
         if 'errors' in data:
             print(f"GraphQL errors: {data['errors']}")
             return None
+
         user_data = data.get('data', {}).get('userdrop', {}).get('user', {})
+        
         tasks = user_data.get('tasks', [])
         points_histories = user_data.get('pointsHistories', [])
         points = user_data.get('points', 0)
         rank = user_data.get('rank', '')
+
         incomplete_tasks = [task for task in tasks if not task['tasks'][0]['progress']['isCompleted']]
+        
         return {
             "tasks": incomplete_tasks,
             "pointsHistories": points_histories,
             "points": points,
             "rank": rank
         }
+    
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
         try:
@@ -299,6 +326,7 @@ def claim_task(address, task_id):
         }
         response = requests.post(url, json={'query': mutation, 'variables': variables}, headers=headers)
         data = response.json()
+        
         success = data.get('data', {}).get('userdrop', {}).get('updateTaskStatus', {}).get('success', False)
         if success:
             print_success(f"Task {Fore.MAGENTA}{task_id} {Fore.GREEN}successfully claimed!")
@@ -311,45 +339,59 @@ def start_daily_and_process_tasks(private_keys_file):
     try:
         with open(private_keys_file, 'r') as f:
             private_keys = f.read().splitlines()
+
         for private_key in private_keys:
             total_operations = 0
+
             account = w3.eth.account.from_key(private_key.strip())
             address = account.address
             address_short = f"{address[:5]}...{address[-5:]}"
             print(Fore.YELLOW + Style.BRIGHT + "="*102 + Style.RESET_ALL)
             print_info(f"Starting earning points {Fore.MAGENTA}{Style.BRIGHT}(Claim Task and On-chain Activity) {Fore.BLUE}for address {Fore.YELLOW}{Style.BRIGHT}{address_short}")
+
             while total_operations <= 3:
                 eth_balance = get_eth_balance(address)
                 weth_balance = get_weth_balance(address)
                 total_balance = eth_balance + weth_balance
+
                 if eth_balance > weth_balance and total_operations < 3:
                     wrap_success = wrap_eth(private_key)
+                    time.sleep(random.uniform(1, 3))
                     if wrap_success:
                         total_operations += 1
                         print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH")
+                        time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Wrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
                         break
+
                 elif weth_balance > eth_balance and total_operations < 3:
                     unwrap_success = unwrap_eth(private_key)
+                    time.sleep(random.uniform(1, 3))
                     if unwrap_success:
                         total_operations += 1
                         print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH")
+                        time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Unwrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
                         break
+
                 if total_operations >= 3:
                     break
+
             response = fetch_tasks(address)
             if response:
                 tasks = response.get('tasks', [])
                 points = response.get('points', 0)
                 rank = response.get('rank', '')
+
                 for task in tasks:
                     claim_task(address, task['id'])
+                
                 print_success(f"All task Successful for address {Fore.YELLOW}{Style.BRIGHT}{address_short} {Fore.GREEN}| Point: {Fore.MAGENTA}{points} {Fore.GREEN}| Rank: {Fore.MAGENTA}{rank}")
             else:
                 print_error(f"Failed to fetch tasks or user data for address {address_short}")
+
             print(Fore.YELLOW + Style.BRIGHT + "="*102 + Style.RESET_ALL)
     except Exception as e:
         print_error(f"Error processing tasks", end='\r')
