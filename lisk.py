@@ -349,36 +349,35 @@ def start_daily_and_process_tasks(private_keys_file):
             print(Fore.YELLOW + Style.BRIGHT + "="*102 + Style.RESET_ALL)
             print_info(f"Starting earning points {Fore.MAGENTA}{Style.BRIGHT}(Claim Task and On-chain Activity) {Fore.BLUE}for address {Fore.YELLOW}{Style.BRIGHT}{address_short}")
 
-            while total_operations <= 3:
+            while total_operations <= 72:
                 eth_balance = get_eth_balance(address)
                 weth_balance = get_weth_balance(address)
                 total_balance = eth_balance + weth_balance
 
-                if eth_balance > weth_balance and total_operations < 3:
+                if eth_balance > weth_balance and total_operations < 72:
                     wrap_success = wrap_eth(private_key)
                     time.sleep(random.uniform(1, 3))
                     if wrap_success:
                         total_operations += 1
-                        print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH")
+                        print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH",end='\r')
                         time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Wrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
-                        print_error(f"{e}")
                         break
 
-                elif weth_balance > eth_balance and total_operations < 3:
+                elif weth_balance > eth_balance and total_operations < 72:
                     unwrap_success = unwrap_eth(private_key)
                     time.sleep(random.uniform(1, 3))
                     if unwrap_success:
                         total_operations += 1
-                        print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH")
+                        print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH",end='\r')
                         time.sleep(random.uniform(1, 3))
                     else:
                         print_error(f"Unwrap failed, skipping this round | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} ETH")
-                        print_error(f"{e}")
                         break
 
-                if total_operations >= 3:
+                if total_operations >= 72:
+                    print_success(f"Successfully Wrap/Unwrap {Fore.MAGENTA}{Style.BRIGHT}{total_operations} {Fore.GREEN}times. | Balance: {Fore.MAGENTA}{Style.BRIGHT}{total_balance} {Fore.GREEN}ETH")
                     break
 
             response = fetch_tasks(address)
@@ -401,7 +400,7 @@ def start_daily_and_process_tasks(private_keys_file):
 def start_task(private_keys_file):
     while True:
         start_daily_and_process_tasks(private_keys_file)
-        for remaining_seconds in range(3600, 0, -1):
+        for remaining_seconds in range(86400, 0, -1):
             minutes, seconds = divmod(remaining_seconds, 60)
             countdown = f"{minutes:02}:{seconds:02}"
             print_info(f"⌛ Waiting for the next schedule: {Fore.YELLOW}{Style.BRIGHT}{countdown}", end='\r')
